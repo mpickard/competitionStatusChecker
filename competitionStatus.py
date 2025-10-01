@@ -63,9 +63,11 @@ def check_competitions():
     url = "https://www.swimming.ca/events-results-hub/upcoming-meets/"
     print(f"Fetching {url} ...")
     html = fetch_html(url)
+    print("fetched!")
 
     soup = BeautifulSoup(html, "html.parser")
     rows = soup.find_all("tr")
+    print(f"rows: {len(rows)}")
 
     for row in rows:
         cells = row.find_all("td", class_="tc")
@@ -75,6 +77,7 @@ def check_competitions():
         comp_name = cells[1].get_text(strip=True)
         status = cells[6].get_text(strip=True)
         deadline = cells[7].get_text(strip=True)
+        print(f"Comp_name: {comp_name},  Status: {status}")
 
         for target in competitionNames.keys():
             if target.lower() in comp_name.lower():
