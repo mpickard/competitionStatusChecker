@@ -1,80 +1,73 @@
-import time
 import requests
 from bs4 import BeautifulSoup
+import os
+import sys
 
-# 1. Competitions to track
+# -------------------------------
+# Config
+# -------------------------------
+
+# Competition names to look for (case insensitive)
 competitionNames = {
     "2025 OAK Brad Townsend Fall Classic": False,
     "Gus Ryder Memorial Cup 2025": False,
     "MAC Jingle Bell": False,
     "David Lawson Invitational 2026": False,
     "Jeff and Sandy Lee Invitational": False,
-
 }
 
-# --- Telegram Settings ---
-TELEGRAM_TOKEN = "8365791407:AAFa-ToaqczcvaAxVqLeAUl93E7NSD_wxnE"   # from BotFather
-CHAT_ID = "8308952773"            # from https://api.telegram.org/bot8365791407:AAFa-ToaqczcvaAxVqLeAUl93E7NSD_wxnE/getUpdates
+# Telegram bot details (stored in GitHub Secrets)
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-def send_telegram(message: str):
-    """Send a Telegram message via bot."""
+if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+    print("❌ Missing TELEGRAM_TOKEN or TELEGRAM_CHAT_ID environment variables")
+    sys.exit(1)
+
+# -------------------------------
+# Helpers
+# -------------------------------
+
+def send_telegram_message(message: str):
+    """Send a message via Telegram bot"""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
     try:
-        requests.post(url, data={"chat_id": CHAT_ID, "text": message})
-        print(f"[INFO] Sent Telegram alert: {message}")
+        resp = requests.post(url, data=data)
+        resp.raise_for_status()
+        print(f"✅ Sent Telegram alert: {message}")
     except Exception as e:
-        print(f"[ERROR] Failed to send Telegram message: {e}")
+        print(f"❌ Failed to send Telegram message: {e}")
 
-# --- Competition Check ---
+
 def check_competitions():
-    """Fetch the webpage and check competitions for readiness."""
+    """Fetch the swim meet page and look for competitions"""
     url = "https://www.swimming.ca/events-results-hub/upcoming-meets/"
-    response = requests.get(url)
-    response.raise_for_status()
+    print(f"Fetching {url} ...")
+    resp = requests.get(url)
+    resp.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
-
+    soup = BeautifulSoup(resp.text, "html.parser")
     rows = soup.find_all("tr")
+
     for row in rows:
-        cells = row.find_all("td")
+        cells = row.find_all("td", class_="tc")
         if len(cells) < 8:
-            continue
+            continue  # not a valid competition row
 
         comp_name = cells[1].get_text(strip=True)
-        status = cells[6].get_text(strip=True).lower()
+        status = cells[6].get_text(strip=True)
         deadline = cells[7].get_text(strip=True)
 
-        # Look for a tracked competition
         for target in competitionNames.keys():
-            if competitionNames[target]:
-                continue  # already marked ready
             if target.lower() in comp_name.lower():
-                if status == "active":
-                    # Send Telegram alert
-                    message = (
-                        f"🚨 Competition Ready 🚨\n\n"
-                        f"{target} is now ready for entry!\n"
-                        f"Deadline: {deadline}"
-                    )
-                    send_telegram(message)
+                print(f"Found '{comp_name}' → Status: {status}")
+                if status.lower() == "active":
+                    msg = (f"🏊 Attention! The following competition is now ready for entry:\n"
+                           f"➡️ {comp_name}\n"
+                           f"📅 Deadline for entries: {deadline}")
+                    send_telegram_message(msg)
 
-                    # Mark ready
-                    competitionNames[target] = True
-                    print(f"[INFO] Marked {target} as ready.")
 
-    return all(competitionNames.values())
-
-# --- Main Loop ---
 if __name__ == "__main__":
-    while True:
-        try:
-            print("[INFO] Checking competitions...")
-            all_ready = check_competitions()
-            if all_ready:
-                print("[INFO] All competitions are ready. Exiting.")
-                break
-        except Exception as e:
-            print(f"[ERROR] {e}")
-
-        print("[INFO] Sleeping for 1 hour...")
-        time.sleep(3600)
+    check_competitions()
