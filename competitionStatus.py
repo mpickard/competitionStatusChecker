@@ -77,3 +77,13 @@ def check_competitions():
 
         for target in competitionNames.keys():
             if target.lower() in comp_name.lower():
+                print(f"Found '{comp_name}' → Status: {status}")
+                if status.lower() == "active":
+                    msg = (f"🏊 Attention! The following competition is now ready for entry:\n"
+                           f"➡️ {comp_name}\n"
+                           f"📅 Deadline for entries: {deadline}")
+                    send_telegram_message(msg)
+
+
+if __name__ == "__main__":
+    check_competitions()
