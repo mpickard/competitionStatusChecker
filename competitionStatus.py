@@ -63,7 +63,7 @@ def check_competitions():
     url = "https://www.swimming.ca/events-results-hub/upcoming-meets/"
     print(f"Fetching {url} ...")
     html = fetch_html(url)
-    print("fetched!")
+    print(f"Fetched! \n {html}")
 
     soup = BeautifulSoup(html, "html.parser")
     rows = soup.find_all("tr")
