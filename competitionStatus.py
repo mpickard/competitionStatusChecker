@@ -29,6 +29,7 @@ if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
 
 def send_telegram_message(message: str):
     """Send a message via Telegram bot"""
+    print(f"Sending telegram alert: {message}")
     import requests
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     data = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
@@ -83,6 +84,8 @@ def check_competitions():
                            f"➡️ {comp_name}\n"
                            f"📅 Deadline for entries: {deadline}")
                     send_telegram_message(msg)
+                else:
+                    print(f"Competition {target} is not ready.")
 
 
 if __name__ == "__main__":
